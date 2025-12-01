@@ -23,6 +23,11 @@ public class PlayerController : MonoBehaviour
             {
                 pawn.FireWeapon();
             }
+            // Fire on left mouse button or space
+            if (Input.GetButtonDown("Fire2"))
+            {
+                pawn.FireBigWeapon();
+            }
         }
     }
     private void HandleMovementInput()

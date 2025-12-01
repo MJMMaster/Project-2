@@ -1,8 +1,13 @@
 ﻿using UnityEngine;
-
+using System.Collections;
+using UnityEngine.SceneManagement;
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
+    
+    [Header("Lives System")]
+    public int maxLives = 3;
+    public int currentLives;
 
     [Header("Score")]
     public int score = 0;
@@ -30,6 +35,8 @@ public class GameManager : MonoBehaviour
     private void Start()
     {
         SpawnPlayer();
+
+        currentLives = maxLives;
     }
 
     // -------------------------
@@ -55,15 +62,78 @@ public class GameManager : MonoBehaviour
 
     public void RespawnPlayer()
     {
-        SpawnPlayer();
+        // wait 3 seconds before respawn
+        Instance.StartCoroutine(RespawnRoutine());
+    }
+
+    private IEnumerator RespawnRoutine()
+    {
+        yield return new WaitForSeconds(3f);
+
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+
+        if (player != null)
+        {
+            // reset position to center of map
+            player.transform.position = new Vector3(0f, 25f, 0f);
+
+            // reset health
+            Health health = player.GetComponent<Health>();
+            if (health != null)
+            {
+                health.ResetHealth();
+            }
+        }
     }
 
     // -------------------------
     // PLAYER DIED
     // -------------------------
+    public void ResetLives()
+    {
+        score = 0;
+        currentLives = maxLives;
+        currentPlayer = null;
+    }
+
+    public void ResetScore()
+    {
+        score = 0;
+    }
     public void PlayerDied()
     {
-        Debug.Log("Player died! Respawning...");
-        RespawnPlayer();
+        Debug.Log("PLAYER DIED. Lives before decrement = " + currentLives);
+
+        currentLives--;
+
+        Debug.Log("Lives now = " + currentLives);
+
+        if (currentLives <= 0)
+        {
+            Debug.Log("GAME OVER SHOULD HAPPEN NOW");
+            GameOverManager.Instance.TriggerGameOver();
+        }
+        else
+        {
+            Debug.Log("Respawning player. Lives left = " + currentLives);
+            RespawnPlayer();
+        }
+    }
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (scene.name == "MainMenu")
+        {
+            Destroy(gameObject); // Destroy the singleton so it doesn't carry broken references
+        }
     }
 }

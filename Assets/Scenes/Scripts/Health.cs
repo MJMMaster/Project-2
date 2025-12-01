@@ -6,11 +6,13 @@ public class Health : MonoBehaviour
     [Header("Health Settings")]
     public float maxHealth = 100f;
     public float currentHealth;
+    public GameObject explosionPrefab;
+    public bool isDead = false;
+    public int deathScore;
 
     [Header("Events")]
     public UnityEvent<float> OnHealthChanged;  // sends percentage 0–1
     public UnityEvent OnDeath;
-
     private void Awake()
     {
         currentHealth = maxHealth;
@@ -19,15 +21,21 @@ public class Health : MonoBehaviour
 
     public void TakeDamage(float amount)
     {
-        if (currentHealth <= 0) return;
+        AudioManager.Instance.PlayDamage(transform.position);
+
+        if (isDead) return;
 
         currentHealth -= amount;
         currentHealth = Mathf.Max(currentHealth, 0);
 
         OnHealthChanged.Invoke(currentHealth / maxHealth);
 
+
         if (currentHealth <= 0)
         {
+            if (deathScore > 0)
+                ScoreManager.Instance.AddScore(deathScore);
+
             Die();
         }
     }
@@ -40,19 +48,29 @@ public class Health : MonoBehaviour
         OnHealthChanged.Invoke(currentHealth / maxHealth);
     }
 
+    public void ResetHealth()
+    {
+        currentHealth = maxHealth;
+        isDead = false;
+    }
     private void Die()
     {
-        OnDeath.Invoke();
+        AudioManager.Instance.PlayDeath(transform.position);
 
-        // If the object has a Death component, let that handle it
-        Death deathComponent = GetComponent<Death>();
-        if (deathComponent != null)
+        if (CompareTag("Player"))
         {
-            deathComponent.Die();
+            GameManager.Instance.PlayerDied();
         }
+
+        // enemies explode and despawn
         else
         {
-            Destroy(gameObject); // Default behavior
+            if (explosionPrefab != null)
+                Instantiate(explosionPrefab, transform.position, Quaternion.identity);
+
+            Destroy(gameObject);
         }
+
+        isDead = true;
     }
 }

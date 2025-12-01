@@ -9,17 +9,14 @@ public class Projectile : MonoBehaviour
     {
         Destroy(gameObject, lifeTime);
     }
-
-    private void OnCollisionEnter(Collision collision)
+    private void OnTriggerEnter(Collider other)
     {
-        // Apply damage if the target has a Health component
-        Health targetHealth = collision.collider.GetComponent<Health>();
-        if (targetHealth != null)
-        {
-            targetHealth.TakeDamage(damage);
-        }
+        Health h = other.GetComponent<Health>();
+        if (h != null)
+            h.TakeDamage(damage);
 
-        // Destroy projectile on hit
+        // No physics push!
         Destroy(gameObject);
     }
+   
 }

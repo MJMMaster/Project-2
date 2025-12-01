@@ -11,11 +11,13 @@ public class PlayerPawn : MonoBehaviour
 
     [Header("Weapon Settings")]
     public GameObject projectilePrefab;
+    public GameObject bigprojectilePrefab;
     public Transform firePoint;   // The place on the model where bullets spawn
     public float projectileSpeed;
     public float fireCooldown;
+    public float bigfireCooldown;
     private float lastFireTime;
-
+    public GameObject explosionEffect;
 
     [Header("References")]
     public Rigidbody rb;
@@ -46,15 +48,54 @@ public class PlayerPawn : MonoBehaviour
     {
         rb.AddTorque(transform.forward * -amount * rollSpeed, ForceMode.Force);
     }
+    private void FixedUpdate()
+    {
+        EnforceVerticalLimit();
+    }
 
+    void EnforceVerticalLimit()
+    {
+        if (LevelData.Instance == null) return;
+
+        float maxY = LevelData.Instance.maxYLimit;
+
+        Vector3 pos = transform.position;
+
+        if (pos.y > maxY)
+        {
+            // Snap back to the maxY limit
+            pos.y = maxY;
+            transform.position = pos;
+
+            // Stop upward velocity so the player doesn't slide up again
+            if (TryGetComponent<Rigidbody>(out Rigidbody rb))
+            {
+                Vector3 v = rb.linearVelocity;
+
+                // If moving upward, cancel that movement
+                if (v.y > 0)
+                {
+                    v.y = 0;
+                    rb.linearVelocity = v;
+                }
+            }
+
+            // Debug confirmation
+            Debug.Log("Y limit enforced at " + maxY);
+        }
+    }
     public void FireWeapon()
     {
+        AudioManager.Instance.PlayShoot(transform.position);
+
         if (projectilePrefab == null || firePoint == null) return;
 
         if (Time.time < lastFireTime + fireCooldown)
             return;
 
         lastFireTime = Time.time;
+        if (explosionEffect != null)
+            Instantiate(explosionEffect, transform.position, Quaternion.identity);
 
         GameObject proj = Instantiate(projectilePrefab, firePoint.position, firePoint.rotation);
 
@@ -65,5 +106,26 @@ public class PlayerPawn : MonoBehaviour
             rb.linearVelocity = firePoint.forward * projectileSpeed;
         }
     }
+    public void FireBigWeapon()
+    {
+        AudioManager.Instance.PlayShoot(transform.position);
 
+        if (bigprojectilePrefab == null || firePoint == null) return;
+
+        if (Time.time < lastFireTime + bigfireCooldown)
+            return;
+
+        lastFireTime = Time.time;
+        if (explosionEffect != null)
+            Instantiate(explosionEffect, transform.position, Quaternion.identity);
+
+        GameObject proj = Instantiate(bigprojectilePrefab, firePoint.position, firePoint.rotation);
+
+        // Add force
+        Rigidbody rb = proj.GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.linearVelocity = firePoint.forward * projectileSpeed;
+        }
+    }
 }
